@@ -689,7 +689,9 @@ function refreshSession(){
 }
 function saveConsent(){
   if(!sb || !user) return;
-  var row = {email:user.email||null, marketing_consent: pendingConsent||false, updated_at:new Date().toISOString()};
+  var consent = pendingConsent;
+  try{ var ls = localStorage.getItem("pp_pending_consent"); if(ls !== null) consent = (ls === "1"); }catch(e){}
+  var row = {email:user.email||null, marketing_consent: !!consent, updated_at:new Date().toISOString()};
   sb.from("profiles").insert(Object.assign({user_id:user.id}, row)).then(function(res){
     if(res && res.error){ sb.from("profiles").update(row).eq("user_id", user.id).then(function(){}).catch(function(){}); }
   }).catch(function(){});
@@ -704,6 +706,7 @@ if(sb){
     if(!email){ msg.textContent = "Please enter your email address."; return; }
     var chk = document.getElementById("consentChk");
     pendingConsent = chk ? chk.checked : false;
+    try{ localStorage.setItem("pp_pending_consent", pendingConsent ? "1" : "0"); }catch(e){}
     msg.textContent = "Sending…";
     sb.auth.signIn.magicLink({email:email, callbackURL: location.origin + location.pathname}).then(function(res){
       msg.textContent = (res && res.error) ? ("Could not send: " + (res.error.message||res.error)) : "Check your inbox — your sign-in link is on its way.";
